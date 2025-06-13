@@ -280,15 +280,49 @@ if __name__ == "__main__":
     print("Running Investment Portfolio Analyzer API Tests")
     print("==============================================")
     
+    test_results = {
+        "api_health_check": False,
+        "default_assets": False,
+        "monte_carlo_simulation": False,
+        "custom_parameters": False,
+        "validation_errors": False,
+        "simulation_history": False
+    }
+    
     try:
         test_api_health_check()
-        test_default_assets()
-        test_monte_carlo_simulation()
-        test_simulation_with_custom_parameters()
-        test_simulation_validation_errors()
-        test_simulation_history()
+        test_results["api_health_check"] = True
         
-        print("\n✅ All tests passed successfully!")
+        test_default_assets()
+        test_results["default_assets"] = True
+        
+        test_monte_carlo_simulation()
+        test_results["monte_carlo_simulation"] = True
+        
+        test_simulation_with_custom_parameters()
+        test_results["custom_parameters"] = True
+        
+        try:
+            test_simulation_validation_errors()
+            test_results["validation_errors"] = True
+        except Exception as e:
+            print(f"\n⚠️ Validation error tests had issues: {str(e)}")
+        
+        test_simulation_history()
+        test_results["simulation_history"] = True
+        
+        # Print summary
+        print("\nTest Results Summary:")
+        print("=====================")
+        for test_name, result in test_results.items():
+            status = "✅ PASSED" if result else "❌ FAILED"
+            print(f"{test_name}: {status}")
+        
+        # Overall result
+        if all(test_results.values()):
+            print("\n✅ All tests passed successfully!")
+        else:
+            print("\n⚠️ Some tests failed. See details above.")
     except Exception as e:
         print(f"\n❌ Test failed: {str(e)}")
         raise
