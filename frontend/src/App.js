@@ -69,6 +69,13 @@ const App = () => {
     return `${(value * 100).toFixed(1)}%`;
   };
 
+  const updateTaxSetting = (field, value) => {
+    setTaxSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const runSimulation = async () => {
     setIsSimulating(true);
     setError(null);
