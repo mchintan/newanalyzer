@@ -25,6 +25,12 @@ const App = () => {
   const [enableDrawdown, setEnableDrawdown] = useState(false);
   const [annualDrawdown, setAnnualDrawdown] = useState(300000);
   const [inflationRate, setInflationRate] = useState(0.03);
+  const [taxSettings, setTaxSettings] = useState({
+    account_type: 'taxable',
+    capital_gains_tax_rate: 0.15,
+    ordinary_income_tax_rate: 0.22,
+    state_tax_rate: 0.0
+  });
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationResult, setSimulationResult] = useState(null);
   const [error, setError] = useState(null);
