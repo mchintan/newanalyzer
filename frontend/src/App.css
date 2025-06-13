@@ -1,38 +1,167 @@
-.App {
-    text-align: center;
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom styles for the Investment Portfolio Analyzer */
+
+.container {
+  @apply max-w-full;
 }
 
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Loading animation */
+.loading-spinner {
+  @apply animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+/* Custom table styles */
+table {
+  @apply border-collapse;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+table th {
+  @apply bg-gray-100 font-semibold text-gray-700 border-b border-gray-200;
 }
 
-.App-link {
-    color: #61dafb;
+table td {
+  @apply border-b border-gray-100;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* Input focus styles */
+input:focus {
+  @apply outline-none ring-2 ring-blue-500 border-blue-500;
+}
+
+/* Button hover effects */
+button:hover:not(:disabled) {
+  @apply transform scale-105 transition-transform duration-200;
+}
+
+/* Chart container responsive */
+.recharts-responsive-container {
+  @apply w-full h-full;
+}
+
+/* Simulation result cards */
+.result-card {
+  @apply bg-white rounded-lg shadow-md p-6 transition-shadow duration-200 hover:shadow-lg;
+}
+
+/* Error states */
+.error-input {
+  @apply border-red-500 focus:ring-red-500 focus:border-red-500;
+}
+
+/* Success states */
+.success-text {
+  @apply text-green-600 font-semibold;
+}
+
+/* Responsive design helpers */
+@media (max-width: 768px) {
+  .container {
+    @apply px-2;
+  }
+  
+  table {
+    @apply text-sm;
+  }
+  
+  .grid-responsive {
+    @apply grid-cols-1;
+  }
+}
+
+/* Animation keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Chart styling */
+.recharts-cartesian-grid line {
+  stroke: #e5e7eb;
+}
+
+.recharts-tooltip-wrapper {
+  @apply bg-white border border-gray-200 rounded-lg shadow-lg;
+}
+
+/* Custom scrollbar for table overflow */
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 rounded;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}
+
+/* Percentage and currency formatting */
+.currency {
+  @apply font-mono text-right;
+}
+
+.percentage {
+  @apply font-mono text-right;
+}
+
+/* Status indicators */
+.status-positive {
+  @apply text-green-600 bg-green-50 px-2 py-1 rounded-full text-sm;
+}
+
+.status-negative {
+  @apply text-red-600 bg-red-50 px-2 py-1 rounded-full text-sm;
+}
+
+.status-neutral {
+  @apply text-gray-600 bg-gray-50 px-2 py-1 rounded-full text-sm;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+}
+
+.loading-content {
+  @apply bg-white rounded-lg p-8 flex flex-col items-center space-y-4;
+}
+
+/* Simulation progress */
+.progress-bar {
+  @apply w-full bg-gray-200 rounded-full h-2.5;
+}
+
+.progress-fill {
+  @apply bg-blue-600 h-2.5 rounded-full transition-all duration-300;
+}
+
+/* Custom tooltip styling */
+.custom-tooltip {
+  @apply bg-white p-3 border border-gray-200 rounded-lg shadow-lg;
+}
+
+.custom-tooltip .label {
+  @apply font-semibold text-gray-700 mb-1;
+}
+
+.custom-tooltip .value {
+  @apply text-blue-600 font-mono;
 }
