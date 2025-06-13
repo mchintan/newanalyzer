@@ -399,7 +399,13 @@ async def get_default_asset_classes():
         "default_time_horizon": 10,
         "default_num_simulations": 10000,
         "default_annual_drawdown": 300000,  # $300K
-        "default_inflation_rate": 0.03  # 3%
+        "default_inflation_rate": 0.03,  # 3%
+        "default_tax_settings": {
+            "account_type": "taxable",
+            "capital_gains_tax_rate": 0.15,
+            "ordinary_income_tax_rate": 0.22,
+            "state_tax_rate": 0.0
+        }
     }
 
 # Include the router in the main app
