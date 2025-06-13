@@ -89,7 +89,8 @@ const App = () => {
         num_simulations: numSimulations,
         enable_drawdown: enableDrawdown,
         annual_drawdown: enableDrawdown ? annualDrawdown : 0,
-        inflation_rate: enableDrawdown ? inflationRate : 0.03
+        inflation_rate: enableDrawdown ? inflationRate : 0.03,
+        tax_settings: taxSettings
       };
 
       const response = await axios.post(`${API}/simulate`, request);
