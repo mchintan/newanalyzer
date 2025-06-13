@@ -201,6 +201,93 @@ const App = () => {
               </div>
             </div>
 
+            {/* Drawdown Section */}
+            <div className="mb-8 p-6 bg-gray-50 rounded-lg">
+              <div className="flex items-center mb-4">
+                <input
+                  type="checkbox"
+                  id="enableDrawdown"
+                  checked={enableDrawdown}
+                  onChange={(e) => setEnableDrawdown(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="enableDrawdown" className="ml-2 text-lg font-semibold text-gray-800">
+                  Enable Annual Withdrawals (Drawdown)
+                </label>
+              </div>
+              
+              {enableDrawdown && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Annual Withdrawal (First Year)
+                    </label>
+                    <input
+                      type="number"
+                      value={annualDrawdown}
+                      onChange={(e) => setAnnualDrawdown(parseInt(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="300000"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      {formatCurrency(annualDrawdown)} in year 1
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Annual Inflation Rate
+                    </label>
+                    <input
+                      type="number"
+                      value={inflationRate * 100}
+                      onChange={(e) => setInflationRate((parseFloat(e.target.value) || 0) / 100)}
+                      step="0.1"
+                      min="0"
+                      max="10"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="3.0"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      {(inflationRate * 100).toFixed(1)}% annual increase
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {enableDrawdown && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-semibold text-blue-800 mb-2">Withdrawal Preview</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <span className="text-blue-600 font-medium">Year 1:</span>
+                      <br />
+                      {formatCurrency(annualDrawdown)}
+                    </div>
+                    <div>
+                      <span className="text-blue-600 font-medium">Year 5:</span>
+                      <br />
+                      {formatCurrency(annualDrawdown * Math.pow(1 + inflationRate, 4))}
+                    </div>
+                    <div>
+                      <span className="text-blue-600 font-medium">Year 10:</span>
+                      <br />
+                      {formatCurrency(annualDrawdown * Math.pow(1 + inflationRate, 9))}
+                    </div>
+                    <div>
+                      <span className="text-blue-600 font-medium">Total Withdrawn:</span>
+                      <br />
+                      {formatCurrency(
+                        Array.from({length: timeHorizon}, (_, i) => 
+                          annualDrawdown * Math.pow(1 + inflationRate, i)
+                        ).reduce((sum, val) => sum + val, 0)
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Asset Classes */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold mb-4 text-gray-800">
