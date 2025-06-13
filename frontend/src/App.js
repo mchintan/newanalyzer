@@ -73,7 +73,10 @@ const App = () => {
         asset_classes: assetClasses,
         initial_investment: initialInvestment,
         time_horizon: timeHorizon,
-        num_simulations: numSimulations
+        num_simulations: numSimulations,
+        enable_drawdown: enableDrawdown,
+        annual_drawdown: enableDrawdown ? annualDrawdown : 0,
+        inflation_rate: enableDrawdown ? inflationRate : 0.03
       };
 
       const response = await axios.post(`${API}/simulate`, request);
