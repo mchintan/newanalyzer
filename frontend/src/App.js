@@ -101,79 +101,187 @@ const App = () => {
   const runSimulation = async () => {
     setIsSimulating(true);
     setError(null);
-    setSimulationResult(null);
+    console.log('Starting simulation with parameters:', {
+      initialInvestment,
+      timeHorizon,
+      numSimulations,
+      enableDrawdown,
+      annualDrawdown,
+      inflationRate,
+      taxSettings,
+      assetClasses
+    });
 
     try {
-      // Validate inputs
-      validateAssetClasses();
-      
-      if (initialInvestment <= 0) {
-        throw new Error('Initial investment must be greater than 0');
-      }
-      if (timeHorizon < 1 || timeHorizon > 50) {
-        throw new Error('Time horizon must be between 1 and 50 years');
-      }
-      if (numSimulations < 5000) {
-        throw new Error('Minimum 5,000 simulations required');
-      }
-      if (enableDrawdown && annualDrawdown <= 0) {
-        throw new Error('Annual drawdown must be greater than 0 when enabled');
-      }
-
       const request = {
-        asset_classes: assetClasses.map(asset => ({
-          name: asset.name,
-          median_return: parseFloat(asset.median_return),
-          std_deviation: parseFloat(asset.std_deviation),
-          min_return: parseFloat(asset.min_return),
-          max_return: parseFloat(asset.max_return),
-          allocation: parseFloat(asset.allocation)
-        })),
-        initial_investment: parseFloat(initialInvestment),
-        time_horizon: parseInt(timeHorizon),
-        num_simulations: parseInt(numSimulations),
+        initial_investment: initialInvestment,
+        time_horizon: timeHorizon,
+        num_simulations: numSimulations,
         enable_drawdown: enableDrawdown,
-        annual_drawdown: enableDrawdown ? parseFloat(annualDrawdown) : 0,
-        inflation_rate: enableDrawdown ? parseFloat(inflationRate) : 0.03,
-        tax_settings: {
-          account_type: taxSettings.account_type,
-          capital_gains_tax_rate: parseFloat(taxSettings.capital_gains_tax_rate),
-          ordinary_income_tax_rate: parseFloat(taxSettings.ordinary_income_tax_rate),
-          state_tax_rate: parseFloat(taxSettings.state_tax_rate)
-        }
+        annual_drawdown: annualDrawdown,
+        inflation_rate: inflationRate,
+        tax_settings: taxSettings,
+        asset_classes: assetClasses
       };
 
-      console.log('Sending simulation request:', request);
+      console.log('Sending simulation request to backend:', request);
       const response = await axios.post(`${API}/simulate`, request);
-      console.log('Received simulation response:', response.data);
+      console.log('Raw simulation response:', response.data);
+      console.log('Response structure:', {
+        hasPaths: !!response.data?.simulation_paths,
+        numPaths: response.data?.simulation_paths?.length,
+        firstPathLength: response.data?.simulation_paths?.[0]?.length,
+        hasStats: !!response.data?.statistics,
+        hasFinalValues: !!response.data?.final_values,
+        finalValuesLength: response.data?.final_values?.length,
+        samplePath: response.data?.simulation_paths?.[0]?.slice(0, 3),
+        sampleStats: response.data?.statistics ? {
+          median: response.data.statistics.final_value_median,
+          percentile5: response.data.statistics.final_value_5th_percentile,
+          percentile90: response.data.statistics.final_value_90th_percentile
+        } : null
+      });
+
+      if (!response.data?.simulation_paths || !response.data?.statistics) {
+        throw new Error('Invalid simulation response: missing required data');
+      }
+
       setSimulationResult(response.data);
+      console.log('Simulation result set in state, preparing to render chart');
+      
+      // Force a re-render of the chart data
+      const chartData = prepareChartData();
+      console.log('Initial chart data preparation:', {
+        numDataPoints: chartData.length,
+        sampleDataPoint: chartData[0],
+        hasData: chartData.some(point => 
+          point['5th_percentile'] > 0 || 
+          point['median'] > 0 || 
+          point['90th_percentile'] > 0
+        )
+      });
+
     } catch (e) {
-      console.error('Simulation error:', e);
+      console.error('Simulation error:', {
+        error: e,
+        message: e.message,
+        response: e.response?.data,
+        status: e.response?.status
+      });
       setError(e.response?.data?.detail || e.message || 'Simulation failed');
     } finally {
       setIsSimulating(false);
+      console.log('Simulation completed');
     }
   };
 
   // Prepare chart data for visualization
   const prepareChartData = () => {
-    if (!simulationResult) return [];
+    console.log('Preparing chart data...');
+    if (!simulationResult) {
+      console.log('No simulation result available');
+      return [];
+    }
+
+    console.log('Simulation Result:', {
+      hasPaths: !!simulationResult.simulation_paths,
+      numPaths: simulationResult.simulation_paths?.length,
+      hasStats: !!simulationResult.statistics,
+      stats: simulationResult.statistics,
+      finalValues: simulationResult.final_values?.length,
+      samplePath: simulationResult.simulation_paths?.[0]?.slice(0, 3),
+      sampleStats: simulationResult.statistics ? {
+        median: simulationResult.statistics.final_value_median,
+        percentile5: simulationResult.statistics.final_value_5th_percentile,
+        percentile90: simulationResult.statistics.final_value_90th_percentile
+      } : null
+    });
 
     const chartData = [];
-    const maxPaths = Math.min(100, simulationResult.simulation_paths.length); // Show max 100 paths for performance
+    const stats = simulationResult.statistics;
+    const finalValues = simulationResult.final_values;
+
+    if (!finalValues || !stats || !simulationResult.simulation_paths) {
+      console.log('Missing required data for chart:', {
+        hasFinalValues: !!finalValues,
+        hasStats: !!stats,
+        hasPaths: !!simulationResult.simulation_paths
+      });
+      return [];
+    }
+
+    // Find the indices of paths that correspond to our percentiles
+    const findPathIndex = (targetValue) => {
+      if (!targetValue || !finalValues) return -1;
+      
+      // Sort final values and find the closest match
+      const sortedValues = [...finalValues].sort((a, b) => a - b);
+      const index = sortedValues.findIndex(value => value >= targetValue);
+      
+      console.log('Finding path for value:', {
+        target: targetValue,
+        sortedValues: sortedValues.slice(0, 5),
+        foundIndex: index,
+        actualValue: index !== -1 ? sortedValues[index] : null
+      });
+      
+      return index;
+    };
+
+    // Get the target values from statistics
+    const target5th = stats.final_value_5th_percentile;
+    const targetMedian = stats.final_value_median;
+    const target90th = stats.final_value_90th_percentile;
+
+    console.log('Target values for paths:', {
+      target5th,
+      targetMedian,
+      target90th
+    });
+
+    // Find the closest paths to our target values
+    const path5th = findPathIndex(target5th);
+    const pathMedian = findPathIndex(targetMedian);
+    const path90th = findPathIndex(target90th);
+
+    console.log('Path indices:', { 
+      path5th, 
+      pathMedian, 
+      path90th,
+      hasPath5th: path5th !== -1,
+      hasPathMedian: pathMedian !== -1,
+      hasPath90th: path90th !== -1
+    });
 
     // Create data points for each year
     for (let year = 0; year <= timeHorizon; year++) {
       const dataPoint = { year };
       
-      // Add selected simulation paths
-      for (let i = 0; i < maxPaths; i++) {
-        const path = simulationResult.simulation_paths[i];
-        dataPoint[`path_${i}`] = path[year]?.portfolio_value || 0;
+      // Add the key percentile paths if we found them
+      if (path5th !== -1) {
+        dataPoint['5th_percentile'] = simulationResult.simulation_paths[path5th]?.[year]?.portfolio_value || 0;
+      }
+      if (pathMedian !== -1) {
+        dataPoint['median'] = simulationResult.simulation_paths[pathMedian]?.[year]?.portfolio_value || 0;
+      }
+      if (path90th !== -1) {
+        dataPoint['90th_percentile'] = simulationResult.simulation_paths[path90th]?.[year]?.portfolio_value || 0;
       }
 
       chartData.push(dataPoint);
     }
+
+    console.log('Chart data prepared:', {
+      numPoints: chartData.length,
+      sample: chartData.slice(0, 3),
+      hasData: chartData.some(point => 
+        point['5th_percentile'] > 0 || 
+        point['median'] > 0 || 
+        point['90th_percentile'] > 0
+      ),
+      firstPoint: chartData[0],
+      lastPoint: chartData[chartData.length - 1]
+    });
 
     return chartData;
   };
@@ -832,38 +940,66 @@ const App = () => {
                   Portfolio Value Simulation Paths
                 </h2>
                 <div className="h-96">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={prepareChartData()}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="year" 
-                        label={{ value: 'Years', position: 'insideBottom', offset: -10 }}
-                      />
-                      <YAxis 
-                        tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
-                        label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft' }}
-                      />
-                      <Tooltip 
-                        formatter={(value) => [formatCurrency(value), 'Portfolio Value']}
-                        labelFormatter={(label) => `Year ${label}`}
-                      />
-                      {/* Render multiple simulation paths */}
-                      {Array.from({ length: Math.min(20, simulationResult.simulation_paths.length) }, (_, i) => (
-                        <Line
-                          key={`path_${i}`}
-                          type="monotone"
-                          dataKey={`path_${i}`}
-                          stroke={`hsl(${i * 15}, 70%, 50%)`}
-                          strokeWidth={1}
-                          dot={false}
-                          strokeOpacity={0.3}
-                        />
-                      ))}
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {(() => {
+                    const chartData = prepareChartData();
+                    console.log('Chart component rendering with data:', {
+                      hasData: !!chartData,
+                      dataLength: chartData?.length,
+                      samplePoint: chartData?.[0],
+                      hasValidValues: chartData?.some(point => 
+                        point['5th_percentile'] > 0 || 
+                        point['median'] > 0 || 
+                        point['90th_percentile'] > 0
+                      )
+                    });
+                    return (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="year" 
+                            label={{ value: 'Years', position: 'insideBottom', offset: -10 }}
+                          />
+                          <YAxis 
+                            tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
+                            label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft' }}
+                          />
+                          <Tooltip 
+                            formatter={(value) => [formatCurrency(value), 'Portfolio Value']}
+                            labelFormatter={(label) => `Year ${label}`}
+                          />
+                          <Legend />
+                          <Line
+                            name="5th Percentile (Worst Case)"
+                            type="monotone"
+                            dataKey="5th_percentile"
+                            stroke="#EF4444"
+                            strokeWidth={2}
+                            dot={false}
+                          />
+                          <Line
+                            name="Median (Expected)"
+                            type="monotone"
+                            dataKey="median"
+                            stroke="#3B82F6"
+                            strokeWidth={2}
+                            dot={false}
+                          />
+                          <Line
+                            name="90th Percentile (Best Case)"
+                            type="monotone"
+                            dataKey="90th_percentile"
+                            stroke="#10B981"
+                            strokeWidth={2}
+                            dot={false}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    );
+                  })()}
                 </div>
                 <p className="text-sm text-gray-600 mt-2">
-                  Showing 20 sample simulation paths out of {simulationResult.simulation_paths.length} total simulations
+                  Showing key percentile paths: 5th (worst case), median (expected), and 90th (best case)
                 </p>
               </div>
 

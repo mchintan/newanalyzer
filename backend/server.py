@@ -83,12 +83,22 @@ class SimulationPath(BaseModel):
     year: int
     portfolio_value: float
 
+    class Config:
+        json_encoders = {
+            float: lambda v: round(v, 2)  # Round float values to 2 decimal places
+        }
+
 class SimulationResult(BaseModel):
     id: str
     simulation_paths: List[List[SimulationPath]]  # Each simulation run's path
     final_values: List[float]  # Final portfolio values for each simulation
     statistics: Dict[str, float]  # Summary statistics
     parameters: SimulationRequest
+
+    class Config:
+        json_encoders = {
+            float: lambda v: round(v, 2)  # Round float values to 2 decimal places
+        }
 
 # Monte Carlo Simulation Engine
 class PortfolioSimulator:
@@ -361,8 +371,30 @@ async def run_portfolio_simulation(request: SimulationRequest):
         # Run simulation
         result = simulator.run_simulation(request)
         
+        # Log the response data structure
+        logger.info("Simulation result structure:", {
+            "has_paths": bool(result.simulation_paths),
+            "num_paths": len(result.simulation_paths) if result.simulation_paths else 0,
+            "first_path_length": len(result.simulation_paths[0]) if result.simulation_paths else 0,
+            "has_final_values": bool(result.final_values),
+            "num_final_values": len(result.final_values) if result.final_values else 0,
+            "has_stats": bool(result.statistics),
+            "sample_path": result.simulation_paths[0][:3] if result.simulation_paths else None,
+            "sample_stats": {k: v for k, v in list(result.statistics.items())[:5]} if result.statistics else None
+        })
+        
+        # Convert to dict and log the actual response
+        response_dict = result.dict()
+        logger.info("Response dict structure:", {
+            "has_paths": "simulation_paths" in response_dict,
+            "num_paths": len(response_dict.get("simulation_paths", [])),
+            "has_final_values": "final_values" in response_dict,
+            "num_final_values": len(response_dict.get("final_values", [])),
+            "has_stats": "statistics" in response_dict
+        })
+        
         # Store result in memory
-        simulation_history.append(result.dict())
+        simulation_history.append(response_dict)
         
         return result
     
