@@ -506,11 +506,26 @@ const App = () => {
                     <h3 className="text-lg font-semibold mb-4 text-gray-800">Risk Analysis</h3>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                        <span className="font-medium text-gray-800">Probability of Loss</span>
+                        <span className="font-medium text-gray-800">
+                          {simulationResult.statistics.drawdown_enabled ? 'Portfolio Depletion Risk' : 'Probability of Loss'}
+                        </span>
                         <div className="font-bold text-red-600">
-                          {formatPercentage(simulationResult.statistics.probability_of_loss)}
+                          {formatPercentage(
+                            simulationResult.statistics.drawdown_enabled 
+                              ? simulationResult.statistics.probability_of_depletion
+                              : simulationResult.statistics.probability_of_depletion
+                          )}
                         </div>
                       </div>
+                      
+                      {simulationResult.statistics.drawdown_enabled && (
+                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                          <span className="font-medium text-gray-800">Probability of Maintaining Initial Value</span>
+                          <div className="font-bold text-green-600">
+                            {formatPercentage(simulationResult.statistics.probability_of_maintaining)}
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
                         <span className="font-medium text-gray-800">Probability of Doubling</span>
@@ -518,6 +533,20 @@ const App = () => {
                           {formatPercentage(simulationResult.statistics.probability_of_doubling)}
                         </div>
                       </div>
+                      
+                      {simulationResult.statistics.drawdown_enabled && (
+                        <div className="flex justify-between items-center p-3 bg-blue-50 rounded">
+                          <span className="font-medium text-blue-800">Total Withdrawals</span>
+                          <div className="text-right">
+                            <div className="font-bold text-blue-600">
+                              {formatCurrency(simulationResult.statistics.total_drawdowns)}
+                            </div>
+                            <div className="text-sm text-blue-600">
+                              Over {simulationResult.statistics.time_horizon_years} years
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
                         <span className="font-medium text-gray-800">Best Case Scenario</span>
