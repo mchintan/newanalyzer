@@ -113,37 +113,100 @@ class PortfolioSimulator:
         
         return path
     
-    def _calculate_statistics(self, final_values: List[float], initial_investment: float) -> Dict[str, float]:
-        """Calculate summary statistics from simulation results"""
+    def _calculate_statistics(self, final_values: List[float], initial_investment: float, time_horizon: int) -> Dict[str, float]:
+        """Calculate comprehensive summary statistics from simulation results"""
         final_values = np.array(final_values)
         
         # Calculate percentiles
         percentile_5 = np.percentile(final_values, 5)
+        percentile_10 = np.percentile(final_values, 10)
+        percentile_25 = np.percentile(final_values, 25)
         percentile_50 = np.percentile(final_values, 50)  # Median
+        percentile_75 = np.percentile(final_values, 75)
         percentile_90 = np.percentile(final_values, 90)
+        percentile_95 = np.percentile(final_values, 95)
         
-        # Calculate returns
+        # Calculate total returns
         return_5th = (percentile_5 / initial_investment) - 1
+        return_10th = (percentile_10 / initial_investment) - 1
+        return_25th = (percentile_25 / initial_investment) - 1
         return_median = (percentile_50 / initial_investment) - 1
+        return_75th = (percentile_75 / initial_investment) - 1
         return_90th = (percentile_90 / initial_investment) - 1
+        return_95th = (percentile_95 / initial_investment) - 1
         
-        # Calculate annualized returns (assuming the simulation ran for multiple years)
-        # This is a simplified calculation - in practice you'd want the actual time horizon
+        # Calculate annualized returns
+        def annualized_return(total_return, years):
+            if years == 0:
+                return 0
+            return (1 + total_return) ** (1/years) - 1
+        
+        annualized_return_5th = annualized_return(return_5th, time_horizon)
+        annualized_return_median = annualized_return(return_median, time_horizon)
+        annualized_return_90th = annualized_return(return_90th, time_horizon)
+        
+        # Calculate risk metrics
         mean_value = np.mean(final_values)
         mean_return = (mean_value / initial_investment) - 1
+        mean_annualized_return = annualized_return(mean_return, time_horizon)
+        
+        std_final_value = np.std(final_values)
+        volatility = std_final_value / mean_value  # Coefficient of variation
+        
+        # Calculate probability of loss
+        probability_of_loss = np.sum(final_values < initial_investment) / len(final_values)
+        
+        # Calculate probability of doubling
+        probability_of_doubling = np.sum(final_values >= initial_investment * 2) / len(final_values)
+        
+        # Best and worst case scenarios
+        best_case = np.max(final_values)
+        worst_case = np.min(final_values)
+        best_case_return = (best_case / initial_investment) - 1
+        worst_case_return = (worst_case / initial_investment) - 1
         
         return {
+            # Percentile values
             "final_value_5th_percentile": float(percentile_5),
+            "final_value_10th_percentile": float(percentile_10),
+            "final_value_25th_percentile": float(percentile_25),
             "final_value_median": float(percentile_50),
+            "final_value_75th_percentile": float(percentile_75),
             "final_value_90th_percentile": float(percentile_90),
+            "final_value_95th_percentile": float(percentile_95),
+            
+            # Total returns
             "total_return_5th_percentile": float(return_5th),
+            "total_return_10th_percentile": float(return_10th),
+            "total_return_25th_percentile": float(return_25th),
             "total_return_median": float(return_median),
+            "total_return_75th_percentile": float(return_75th),
             "total_return_90th_percentile": float(return_90th),
+            "total_return_95th_percentile": float(return_95th),
+            
+            # Annualized returns
+            "annualized_return_5th_percentile": float(annualized_return_5th),
+            "annualized_return_median": float(annualized_return_median),
+            "annualized_return_90th_percentile": float(annualized_return_90th),
+            "mean_annualized_return": float(mean_annualized_return),
+            
+            # Basic statistics
             "mean_final_value": float(mean_value),
             "mean_total_return": float(mean_return),
-            "min_final_value": float(np.min(final_values)),
-            "max_final_value": float(np.max(final_values)),
-            "std_final_value": float(np.std(final_values))
+            "best_case_value": float(best_case),
+            "worst_case_value": float(worst_case),
+            "best_case_return": float(best_case_return),
+            "worst_case_return": float(worst_case_return),
+            
+            # Risk metrics
+            "volatility": float(volatility),
+            "std_final_value": float(std_final_value),
+            "probability_of_loss": float(probability_of_loss),
+            "probability_of_doubling": float(probability_of_doubling),
+            
+            # Simulation metadata
+            "time_horizon_years": time_horizon,
+            "initial_investment": initial_investment
         }
 
 # Initialize simulator
