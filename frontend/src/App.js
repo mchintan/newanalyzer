@@ -983,6 +983,114 @@ const App = () => {
                   </p>
                 </div>
               </div>
+
+            {/* Tax Settings Section */}
+            <div className="mb-8 p-6 bg-yellow-50 rounded-lg">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Tax Settings</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Account Type
+                  </label>
+                  <select
+                    value={taxSettings.account_type}
+                    onChange={(e) => updateTaxSetting('account_type', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="taxable">Taxable Account</option>
+                    <option value="tax_deferred">Tax-Deferred (401k/IRA)</option>
+                    <option value="tax_free">Tax-Free (Roth IRA/401k)</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {taxSettings.account_type === 'taxable' && 'Capital gains tax on withdrawals'}
+                    {taxSettings.account_type === 'tax_deferred' && 'Ordinary income tax on withdrawals'}
+                    {taxSettings.account_type === 'tax_free' && 'No tax on qualified withdrawals'}
+                  </p>
+                </div>
+
+                {taxSettings.account_type === 'taxable' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Capital Gains Tax Rate
+                    </label>
+                    <input
+                      type="number"
+                      value={taxSettings.capital_gains_tax_rate * 100}
+                      onChange={(e) => updateTaxSetting('capital_gains_tax_rate', (parseFloat(e.target.value) || 0) / 100)}
+                      step="0.1"
+                      min="0"
+                      max="40"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="15.0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Federal long-term capital gains rate
+                    </p>
+                  </div>
+                )}
+
+                {taxSettings.account_type === 'tax_deferred' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ordinary Income Tax Rate
+                    </label>
+                    <input
+                      type="number"
+                      value={taxSettings.ordinary_income_tax_rate * 100}
+                      onChange={(e) => updateTaxSetting('ordinary_income_tax_rate', (parseFloat(e.target.value) || 0) / 100)}
+                      step="0.1"
+                      min="0"
+                      max="50"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="22.0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Federal income tax bracket
+                    </p>
+                  </div>
+                )}
+
+                {taxSettings.account_type !== 'tax_free' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      State Tax Rate
+                    </label>
+                    <input
+                      type="number"
+                      value={taxSettings.state_tax_rate * 100}
+                      onChange={(e) => updateTaxSetting('state_tax_rate', (parseFloat(e.target.value) || 0) / 100)}
+                      step="0.1"
+                      min="0"
+                      max="15"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0.0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      State income/capital gains tax
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Effective Tax Rate
+                  </label>
+                  <div className="px-3 py-2 bg-gray-100 rounded-md">
+                    <span className="text-lg font-semibold text-gray-700">
+                      {taxSettings.account_type === 'tax_free' ? '0.0%' :
+                       taxSettings.account_type === 'taxable' ? 
+                         `${((taxSettings.capital_gains_tax_rate + taxSettings.state_tax_rate) * 100).toFixed(1)}%` :
+                         `${((taxSettings.ordinary_income_tax_rate + taxSettings.state_tax_rate) * 100).toFixed(1)}%`
+                      }
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Combined federal + state rate
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
