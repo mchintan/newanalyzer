@@ -92,11 +92,27 @@ class PortfolioSimulator:
         )
     
     def _run_single_simulation(self, request: SimulationRequest) -> List[SimulationPath]:
-        """Run a single Monte Carlo simulation path"""
+        """Run a single Monte Carlo simulation path with optional drawdowns"""
         portfolio_value = request.initial_investment
         path = [SimulationPath(year=0, portfolio_value=portfolio_value)]
         
         for year in range(1, request.time_horizon + 1):
+            # Calculate drawdown for this year (if enabled)
+            drawdown_amount = 0.0
+            if request.enable_drawdown and request.annual_drawdown > 0:
+                # Increase drawdown by inflation each year
+                drawdown_amount = request.annual_drawdown * (1 + request.inflation_rate) ** (year - 1)
+                
+                # Apply drawdown at the beginning of the year
+                portfolio_value = max(0, portfolio_value - drawdown_amount)
+            
+            # Only continue if portfolio has value remaining
+            if portfolio_value <= 0:
+                # Portfolio depleted - set remaining years to 0
+                for remaining_year in range(year, request.time_horizon + 1):
+                    path.append(SimulationPath(year=remaining_year, portfolio_value=0.0))
+                break
+            
             annual_return = 0.0
             
             # Calculate weighted portfolio return
@@ -110,8 +126,9 @@ class PortfolioSimulator:
                 # Add weighted return to portfolio
                 annual_return += asset_return * asset.allocation
             
-            # Compound the portfolio value
+            # Apply return to remaining portfolio value
             portfolio_value *= (1 + annual_return)
+            
             path.append(SimulationPath(year=year, portfolio_value=portfolio_value))
         
         return path
