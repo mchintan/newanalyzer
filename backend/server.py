@@ -336,7 +336,9 @@ async def get_default_asset_classes():
         ],
         "default_initial_investment": 5000000,  # $5MM
         "default_time_horizon": 10,
-        "default_num_simulations": 10000
+        "default_num_simulations": 10000,
+        "default_annual_drawdown": 300000,  # $300K
+        "default_inflation_rate": 0.03  # 3%
     }
 
 # Include the router in the main app
