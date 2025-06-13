@@ -291,10 +291,180 @@ const App = () => {
           {/* Results Section */}
           {simulationResult && (
             <div className="space-y-8">
-              {/* Summary Statistics */}
+              {/* Summary Statistics Header */}
               <div className="bg-white rounded-lg shadow-lg p-6">
                 <h2 className="text-2xl font-semibold mb-6 text-gray-800">
-                  Simulation Results Summary
+                  Monte Carlo Simulation Summary
+                </h2>
+                
+                {/* Key Metrics Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-blue-800 mb-1">Simulations Run</h3>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {simulationResult.parameters.num_simulations.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-blue-600">
+                      Time Horizon: {simulationResult.parameters.time_horizon} years
+                    </p>
+                  </div>
+                  
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-green-800 mb-1">Mean Return</h3>
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatPercentage(simulationResult.statistics.mean_annualized_return)} / year
+                    </p>
+                    <p className="text-sm text-green-600">
+                      Total: {formatPercentage(simulationResult.statistics.mean_total_return)}
+                    </p>
+                  </div>
+                  
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-purple-800 mb-1">Expected Value</h3>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {formatCurrency(simulationResult.statistics.mean_final_value)}
+                    </p>
+                    <p className="text-sm text-purple-600">
+                      Growth: {formatCurrency(simulationResult.statistics.mean_final_value - initialInvestment)}
+                    </p>
+                  </div>
+                  
+                  <div className="bg-orange-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-orange-800 mb-1">Risk Level</h3>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {formatPercentage(simulationResult.statistics.volatility)}
+                    </p>
+                    <p className="text-sm text-orange-600">
+                      Volatility (CV)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Detailed Statistics */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Return Distribution */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 text-gray-800">Return Distribution</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center p-3 bg-red-50 rounded">
+                        <span className="font-medium text-red-800">5th Percentile (Worst 5%)</span>
+                        <div className="text-right">
+                          <div className="font-bold text-red-600">
+                            {formatPercentage(simulationResult.statistics.annualized_return_5th_percentile)}/yr
+                          </div>
+                          <div className="text-sm text-red-600">
+                            {formatCurrency(simulationResult.statistics.final_value_5th_percentile)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-yellow-50 rounded">
+                        <span className="font-medium text-yellow-800">25th Percentile</span>
+                        <div className="text-right">
+                          <div className="font-bold text-yellow-600">
+                            {formatPercentage(simulationResult.statistics.total_return_25th_percentile)} total
+                          </div>
+                          <div className="text-sm text-yellow-600">
+                            {formatCurrency(simulationResult.statistics.final_value_25th_percentile)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded">
+                        <span className="font-medium text-blue-800">Median (50th Percentile)</span>
+                        <div className="text-right">
+                          <div className="font-bold text-blue-600">
+                            {formatPercentage(simulationResult.statistics.annualized_return_median)}/yr
+                          </div>
+                          <div className="text-sm text-blue-600">
+                            {formatCurrency(simulationResult.statistics.final_value_median)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-green-50 rounded">
+                        <span className="font-medium text-green-800">75th Percentile</span>
+                        <div className="text-right">
+                          <div className="font-bold text-green-600">
+                            {formatPercentage(simulationResult.statistics.total_return_75th_percentile)} total
+                          </div>
+                          <div className="text-sm text-green-600">
+                            {formatCurrency(simulationResult.statistics.final_value_75th_percentile)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-emerald-50 rounded">
+                        <span className="font-medium text-emerald-800">90th Percentile (Best 10%)</span>
+                        <div className="text-right">
+                          <div className="font-bold text-emerald-600">
+                            {formatPercentage(simulationResult.statistics.annualized_return_90th_percentile)}/yr
+                          </div>
+                          <div className="text-sm text-emerald-600">
+                            {formatCurrency(simulationResult.statistics.final_value_90th_percentile)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Risk Metrics */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 text-gray-800">Risk Analysis</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <span className="font-medium text-gray-800">Probability of Loss</span>
+                        <div className="font-bold text-red-600">
+                          {formatPercentage(simulationResult.statistics.probability_of_loss)}
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <span className="font-medium text-gray-800">Probability of Doubling</span>
+                        <div className="font-bold text-green-600">
+                          {formatPercentage(simulationResult.statistics.probability_of_doubling)}
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <span className="font-medium text-gray-800">Best Case Scenario</span>
+                        <div className="text-right">
+                          <div className="font-bold text-green-600">
+                            {formatCurrency(simulationResult.statistics.best_case_value)}
+                          </div>
+                          <div className="text-sm text-green-600">
+                            {formatPercentage(simulationResult.statistics.best_case_return)} return
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <span className="font-medium text-gray-800">Worst Case Scenario</span>
+                        <div className="text-right">
+                          <div className="font-bold text-red-600">
+                            {formatCurrency(simulationResult.statistics.worst_case_value)}
+                          </div>
+                          <div className="text-sm text-red-600">
+                            {formatPercentage(simulationResult.statistics.worst_case_return)} return
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <span className="font-medium text-gray-800">Standard Deviation</span>
+                        <div className="font-bold text-gray-600">
+                          {formatCurrency(simulationResult.statistics.std_final_value)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Summary Cards */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-2xl font-semibold mb-6 text-gray-800">
+                  Key Outcomes Summary
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-red-50 p-4 rounded-lg">
