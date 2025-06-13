@@ -14,7 +14,7 @@ import {
   Bar
 } from 'recharts';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const App = () => {
@@ -76,28 +76,80 @@ const App = () => {
     return `${(value * 100).toFixed(1)}%`;
   };
 
+  const validateAssetClasses = () => {
+    if (!assetClasses || assetClasses.length === 0) {
+      throw new Error('No asset classes defined');
+    }
+
+    // Validate each asset class
+    assetClasses.forEach((asset, index) => {
+      if (!asset.name) throw new Error(`Asset class ${index + 1} missing name`);
+      if (typeof asset.median_return !== 'number') throw new Error(`Invalid median return for ${asset.name}`);
+      if (typeof asset.std_deviation !== 'number') throw new Error(`Invalid standard deviation for ${asset.name}`);
+      if (typeof asset.min_return !== 'number') throw new Error(`Invalid minimum return for ${asset.name}`);
+      if (typeof asset.max_return !== 'number') throw new Error(`Invalid maximum return for ${asset.name}`);
+      if (typeof asset.allocation !== 'number') throw new Error(`Invalid allocation for ${asset.name}`);
+    });
+
+    // Validate total allocation
+    const totalAllocation = assetClasses.reduce((sum, asset) => sum + asset.allocation, 0);
+    if (Math.abs(totalAllocation - 1.0) > 0.001) {
+      throw new Error(`Asset allocations must sum to 100% (current: ${(totalAllocation * 100).toFixed(1)}%)`);
+    }
+  };
+
   const runSimulation = async () => {
     setIsSimulating(true);
     setError(null);
     setSimulationResult(null);
 
     try {
+      // Validate inputs
+      validateAssetClasses();
+      
+      if (initialInvestment <= 0) {
+        throw new Error('Initial investment must be greater than 0');
+      }
+      if (timeHorizon < 1 || timeHorizon > 50) {
+        throw new Error('Time horizon must be between 1 and 50 years');
+      }
+      if (numSimulations < 5000) {
+        throw new Error('Minimum 5,000 simulations required');
+      }
+      if (enableDrawdown && annualDrawdown <= 0) {
+        throw new Error('Annual drawdown must be greater than 0 when enabled');
+      }
+
       const request = {
-        asset_classes: assetClasses,
-        initial_investment: initialInvestment,
-        time_horizon: timeHorizon,
-        num_simulations: numSimulations,
+        asset_classes: assetClasses.map(asset => ({
+          name: asset.name,
+          median_return: parseFloat(asset.median_return),
+          std_deviation: parseFloat(asset.std_deviation),
+          min_return: parseFloat(asset.min_return),
+          max_return: parseFloat(asset.max_return),
+          allocation: parseFloat(asset.allocation)
+        })),
+        initial_investment: parseFloat(initialInvestment),
+        time_horizon: parseInt(timeHorizon),
+        num_simulations: parseInt(numSimulations),
         enable_drawdown: enableDrawdown,
-        annual_drawdown: enableDrawdown ? annualDrawdown : 0,
-        inflation_rate: enableDrawdown ? inflationRate : 0.03,
-        tax_settings: taxSettings
+        annual_drawdown: enableDrawdown ? parseFloat(annualDrawdown) : 0,
+        inflation_rate: enableDrawdown ? parseFloat(inflationRate) : 0.03,
+        tax_settings: {
+          account_type: taxSettings.account_type,
+          capital_gains_tax_rate: parseFloat(taxSettings.capital_gains_tax_rate),
+          ordinary_income_tax_rate: parseFloat(taxSettings.ordinary_income_tax_rate),
+          state_tax_rate: parseFloat(taxSettings.state_tax_rate)
+        }
       };
 
+      console.log('Sending simulation request:', request);
       const response = await axios.post(`${API}/simulate`, request);
+      console.log('Received simulation response:', response.data);
       setSimulationResult(response.data);
     } catch (e) {
       console.error('Simulation error:', e);
-      setError(e.response?.data?.detail || 'Simulation failed');
+      setError(e.response?.data?.detail || e.message || 'Simulation failed');
     } finally {
       setIsSimulating(false);
     }

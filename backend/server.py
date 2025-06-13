@@ -1,8 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException
-from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
@@ -10,15 +7,7 @@ from typing import List, Dict, Any
 import uuid
 from datetime import datetime
 import numpy as np
-import json
-
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
-
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+from collections import deque
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -26,7 +15,50 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# In-memory storage
+simulation_history = deque(maxlen=10)  # Keep last 10 simulations
+default_asset_classes = [
+    {
+        "name": "Stocks",
+        "median_return": 0.08,
+        "std_deviation": 0.15,
+        "min_return": -0.20,
+        "max_return": 0.30,
+        "allocation": 0.40
+    },
+    {
+        "name": "Bonds",
+        "median_return": 0.04,
+        "std_deviation": 0.05,
+        "min_return": -0.05,
+        "max_return": 0.12,
+        "allocation": 0.30
+    },
+    {
+        "name": "Alternatives",
+        "median_return": 0.06,
+        "std_deviation": 0.10,
+        "min_return": -0.15,
+        "max_return": 0.25,
+        "allocation": 0.20
+    },
+    {
+        "name": "Private Credit",
+        "median_return": 0.07,
+        "std_deviation": 0.08,
+        "min_return": -0.10,
+        "max_return": 0.20,
+        "allocation": 0.10
+    }
+]
+
 # Monte Carlo Simulation Models
+class TaxSettings(BaseModel):
+    account_type: str = "taxable"  # "taxable", "tax_deferred", "tax_free"
+    capital_gains_tax_rate: float = 0.15  # Federal capital gains tax rate
+    ordinary_income_tax_rate: float = 0.22  # For tax-deferred withdrawals
+    state_tax_rate: float = 0.0  # State tax rate
+
 class AssetClass(BaseModel):
     name: str
     median_return: float  # Expected annual return as decimal (e.g., 0.08 for 8%)
@@ -35,12 +67,6 @@ class AssetClass(BaseModel):
     max_return: float     # Maximum return as decimal
     allocation: float     # Portfolio allocation as decimal (e.g., 0.3 for 30%)
 
-class TaxSettings(BaseModel):
-    account_type: str = "taxable"  # "taxable", "tax_deferred", "tax_free"
-    capital_gains_tax_rate: float = 0.15  # Federal capital gains tax rate
-    ordinary_income_tax_rate: float = 0.22  # For tax-deferred withdrawals
-    state_tax_rate: float = 0.0  # State tax rate
-    
 class SimulationRequest(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     asset_classes: List[AssetClass]
@@ -335,8 +361,8 @@ async def run_portfolio_simulation(request: SimulationRequest):
         # Run simulation
         result = simulator.run_simulation(request)
         
-        # Store result in database for future reference
-        await db.simulation_results.insert_one(result.dict())
+        # Store result in memory
+        simulation_history.append(result.dict())
         
         return result
     
@@ -348,64 +374,19 @@ async def run_portfolio_simulation(request: SimulationRequest):
 async def get_simulation_history():
     """Get history of simulation results"""
     try:
-        results = await db.simulation_results.find().sort("timestamp", -1).limit(10).to_list(10)
-        # Convert ObjectId to string for JSON serialization
-        for result in results:
-            result["_id"] = str(result["_id"])
-        return results
+        return list(simulation_history)
     except Exception as e:
         logger.error(f"Error fetching simulation history: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to fetch simulation history")
 
 @api_router.get("/default-assets")
-async def get_default_asset_classes():
-    """Get default asset class parameters"""
+async def get_default_assets():
+    """Get default asset classes and simulation parameters"""
     return {
-        "asset_classes": [
-            {
-                "name": "Stocks",
-                "median_return": 0.08,  # 8% annual return
-                "std_deviation": 0.15,  # 15% volatility
-                "min_return": -0.40,    # -40% worst case
-                "max_return": 0.35,     # 35% best case
-                "allocation": 0.30      # 30% allocation
-            },
-            {
-                "name": "Bonds",
-                "median_return": 0.04,  # 4% annual return
-                "std_deviation": 0.08,  # 8% volatility
-                "min_return": -0.10,    # -10% worst case
-                "max_return": 0.15,     # 15% best case
-                "allocation": 0.30      # 30% allocation
-            },
-            {
-                "name": "Alternatives",
-                "median_return": 0.10,  # 10% annual return
-                "std_deviation": 0.20,  # 20% volatility
-                "min_return": -0.30,    # -30% worst case
-                "max_return": 0.50,     # 50% best case
-                "allocation": 0.20      # 20% allocation
-            },
-            {
-                "name": "Private Credit",
-                "median_return": 0.07,  # 7% annual return
-                "std_deviation": 0.12,  # 12% volatility
-                "min_return": -0.15,    # -15% worst case
-                "max_return": 0.25,     # 25% best case
-                "allocation": 0.20      # 20% allocation
-            }
-        ],
-        "default_initial_investment": 5000000,  # $5MM
+        "asset_classes": default_asset_classes,
+        "default_initial_investment": 5000000,
         "default_time_horizon": 10,
-        "default_num_simulations": 10000,
-        "default_annual_drawdown": 300000,  # $300K
-        "default_inflation_rate": 0.03,  # 3%
-        "default_tax_settings": {
-            "account_type": "taxable",
-            "capital_gains_tax_rate": 0.15,
-            "ordinary_income_tax_rate": 0.22,
-            "state_tax_rate": 0.0
-        }
+        "default_num_simulations": 10000
     }
 
 # Include the router in the main app
@@ -425,7 +406,3 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
