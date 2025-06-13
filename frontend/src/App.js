@@ -22,6 +22,9 @@ const App = () => {
   const [initialInvestment, setInitialInvestment] = useState(5000000);
   const [timeHorizon, setTimeHorizon] = useState(10);
   const [numSimulations, setNumSimulations] = useState(10000);
+  const [enableDrawdown, setEnableDrawdown] = useState(false);
+  const [annualDrawdown, setAnnualDrawdown] = useState(300000);
+  const [inflationRate, setInflationRate] = useState(0.03);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationResult, setSimulationResult] = useState(null);
   const [error, setError] = useState(null);
