@@ -35,6 +35,12 @@ class AssetClass(BaseModel):
     max_return: float     # Maximum return as decimal
     allocation: float     # Portfolio allocation as decimal (e.g., 0.3 for 30%)
 
+class TaxSettings(BaseModel):
+    account_type: str = "taxable"  # "taxable", "tax_deferred", "tax_free"
+    capital_gains_tax_rate: float = 0.15  # Federal capital gains tax rate
+    ordinary_income_tax_rate: float = 0.22  # For tax-deferred withdrawals
+    state_tax_rate: float = 0.0  # State tax rate
+    
 class SimulationRequest(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     asset_classes: List[AssetClass]
@@ -44,6 +50,7 @@ class SimulationRequest(BaseModel):
     enable_drawdown: bool = False  # Whether to enable annual withdrawals
     annual_drawdown: float = 0.0   # Annual withdrawal amount (first year)
     inflation_rate: float = 0.03   # Annual inflation rate for drawdown increases
+    tax_settings: TaxSettings = Field(default_factory=TaxSettings)  # Tax configuration
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 class SimulationPath(BaseModel):
