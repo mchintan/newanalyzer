@@ -195,6 +195,7 @@ def test_simulation_validation_errors():
     invalid_allocation_request["asset_classes"][0]["allocation"] = 0.5  # Change from 0.3 to 0.5
     
     response = requests.post(f"{API_URL}/simulate", json=invalid_allocation_request)
+    print(f"Invalid allocation test response: {response.status_code}, {response.text}")
     assert response.status_code == 400
     assert "Asset allocations must sum to 100%" in response.text
     
