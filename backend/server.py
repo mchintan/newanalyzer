@@ -133,7 +133,7 @@ class PortfolioSimulator:
         
         return path
     
-    def _calculate_statistics(self, final_values: List[float], initial_investment: float, time_horizon: int) -> Dict[str, float]:
+    def _calculate_statistics(self, final_values: List[float], initial_investment: float, time_horizon: int, request: SimulationRequest) -> Dict[str, float]:
         """Calculate comprehensive summary statistics from simulation results"""
         final_values = np.array(final_values)
         
@@ -171,10 +171,13 @@ class PortfolioSimulator:
         mean_annualized_return = annualized_return(mean_return, time_horizon)
         
         std_final_value = np.std(final_values)
-        volatility = std_final_value / mean_value  # Coefficient of variation
+        volatility = std_final_value / mean_value if mean_value > 0 else 0  # Coefficient of variation
         
-        # Calculate probability of loss
-        probability_of_loss = np.sum(final_values < initial_investment) / len(final_values)
+        # Calculate probability of loss (portfolio depletion)
+        probability_of_depletion = np.sum(final_values <= 0) / len(final_values)
+        
+        # Calculate probability of maintaining initial value (despite drawdowns)
+        probability_of_maintaining = np.sum(final_values >= initial_investment) / len(final_values)
         
         # Calculate probability of doubling
         probability_of_doubling = np.sum(final_values >= initial_investment * 2) / len(final_values)
@@ -182,10 +185,17 @@ class PortfolioSimulator:
         # Best and worst case scenarios
         best_case = np.max(final_values)
         worst_case = np.min(final_values)
-        best_case_return = (best_case / initial_investment) - 1
-        worst_case_return = (worst_case / initial_investment) - 1
+        best_case_return = (best_case / initial_investment) - 1 if initial_investment > 0 else 0
+        worst_case_return = (worst_case / initial_investment) - 1 if initial_investment > 0 else 0
         
-        return {
+        # Calculate total drawdowns over time horizon (if enabled)
+        total_drawdowns = 0.0
+        if request.enable_drawdown and request.annual_drawdown > 0:
+            for year in range(1, time_horizon + 1):
+                yearly_drawdown = request.annual_drawdown * (1 + request.inflation_rate) ** (year - 1)
+                total_drawdowns += yearly_drawdown
+        
+        statistics = {
             # Percentile values
             "final_value_5th_percentile": float(percentile_5),
             "final_value_10th_percentile": float(percentile_10),
@@ -221,13 +231,22 @@ class PortfolioSimulator:
             # Risk metrics
             "volatility": float(volatility),
             "std_final_value": float(std_final_value),
-            "probability_of_loss": float(probability_of_loss),
+            "probability_of_depletion": float(probability_of_depletion),
+            "probability_of_maintaining": float(probability_of_maintaining),
             "probability_of_doubling": float(probability_of_doubling),
+            
+            # Drawdown analysis
+            "total_drawdowns": float(total_drawdowns),
+            "drawdown_enabled": request.enable_drawdown,
+            "annual_drawdown_start": float(request.annual_drawdown) if request.enable_drawdown else 0.0,
+            "inflation_rate": float(request.inflation_rate) if request.enable_drawdown else 0.0,
             
             # Simulation metadata
             "time_horizon_years": time_horizon,
             "initial_investment": initial_investment
         }
+        
+        return statistics
 
 # Initialize simulator
 simulator = PortfolioSimulator()
