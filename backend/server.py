@@ -41,6 +41,9 @@ class SimulationRequest(BaseModel):
     initial_investment: float
     time_horizon: int     # Years
     num_simulations: int  # Number of Monte Carlo runs
+    enable_drawdown: bool = False  # Whether to enable annual withdrawals
+    annual_drawdown: float = 0.0   # Annual withdrawal amount (first year)
+    inflation_rate: float = 0.03   # Annual inflation rate for drawdown increases
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 class SimulationPath(BaseModel):
