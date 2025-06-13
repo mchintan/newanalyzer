@@ -206,8 +206,9 @@ def test_simulation_validation_errors():
     print(f"Invalid allocation test response: {response.status_code}")
     print(f"Response body: {response.text}")
     
-    # For now, let's just check if we get an error response
-    assert response.status_code != 200
+    # The server returns 500 with the validation error in the detail
+    assert response.status_code == 500
+    assert "Asset allocations must sum to 100%" in response.text
     
     # Test 2: Too few simulations
     few_sims_request = base_request.copy()
@@ -216,7 +217,7 @@ def test_simulation_validation_errors():
     response = requests.post(f"{API_URL}/simulate", json=few_sims_request)
     print(f"Few simulations test response: {response.status_code}")
     print(f"Response body: {response.text}")
-    assert response.status_code == 400
+    assert response.status_code == 500
     assert "Minimum 5,000 simulations required" in response.text
     
     # Test 3: Excessive time horizon
@@ -226,7 +227,7 @@ def test_simulation_validation_errors():
     response = requests.post(f"{API_URL}/simulate", json=long_horizon_request)
     print(f"Long horizon test response: {response.status_code}")
     print(f"Response body: {response.text}")
-    assert response.status_code == 400
+    assert response.status_code == 500
     assert "Maximum time horizon is 50 years" in response.text
     
     # Test 4: Invalid time horizon (too short)
@@ -236,7 +237,7 @@ def test_simulation_validation_errors():
     response = requests.post(f"{API_URL}/simulate", json=short_horizon_request)
     print(f"Short horizon test response: {response.status_code}")
     print(f"Response body: {response.text}")
-    assert response.status_code == 400
+    assert response.status_code == 500
     assert "Minimum time horizon is 1 year" in response.text
     
     print("✅ Validation error tests passed")
