@@ -47,9 +47,9 @@ A Monte Carlo simulation tool for analyzing investment portfolio performance, bu
 
 3. Start the backend server:
    ```bash
-   uvicorn server:app --reload --host 0.0.0.0 --port 8000
+   uvicorn server:app --reload --host 0.0.0.0 --port <port_no>
    ```
-   The backend will be available at http://localhost:8000
+   The backend will be available at http://<hostname>:<backend_port>
 
 ### Frontend Setup
 
@@ -63,13 +63,13 @@ A Monte Carlo simulation tool for analyzing investment portfolio performance, bu
    ```bash
    yarn start    # or npm start
    ```
-   The frontend will be available at http://localhost:3000
+   The frontend will be available at http://<hostname>:<frontend_port>
 
 ## Running the Application
 
 1. Ensure both backend and frontend servers are running:
-   - Backend: http://localhost:8000
-   - Frontend: http://localhost:3000
+   - Backend: http://<hostname>:<backend_port>
+   - Frontend: http://<hostname>:<frontend_port>
 
 2. Open http://localhost:3000 in your browser
 
@@ -83,7 +83,7 @@ A Monte Carlo simulation tool for analyzing investment portfolio performance, bu
 
 ## Development
 
-- Backend API documentation is available at http://localhost:8000/docs
+- Backend API documentation is available at http://<hostname>:<backend_port>/docs
 - Frontend code is in the `frontend/src` directory
 - Backend code is in the `backend` directory
 
