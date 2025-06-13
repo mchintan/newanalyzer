@@ -81,7 +81,7 @@ class PortfolioSimulator:
             final_values.append(path[-1].portfolio_value)
         
         # Calculate statistics
-        statistics = self._calculate_statistics(final_values, request.initial_investment, request.time_horizon)
+        statistics = self._calculate_statistics(final_values, request.initial_investment, request.time_horizon, request)
         
         return SimulationResult(
             id=request.id,
