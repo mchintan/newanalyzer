@@ -98,20 +98,69 @@ class PortfolioSimulator:
             parameters=request
         )
     
+    def _calculate_withdrawal_tax(self, withdrawal_amount: float, portfolio_value: float, cost_basis: float, tax_settings: TaxSettings) -> float:
+        """Calculate taxes owed on withdrawal based on account type"""
+        if tax_settings.account_type == "tax_free":
+            # Roth IRA/401k - no taxes on qualified withdrawals
+            return 0.0
+        elif tax_settings.account_type == "tax_deferred":
+            # Traditional IRA/401k - entire withdrawal taxed as ordinary income
+            federal_tax = withdrawal_amount * tax_settings.ordinary_income_tax_rate
+            state_tax = withdrawal_amount * tax_settings.state_tax_rate
+            return federal_tax + state_tax
+        else:
+            # Taxable account - only gains are taxed at capital gains rate
+            if portfolio_value <= cost_basis:
+                # No gains, no tax
+                return 0.0
+            
+            # Calculate proportion of gains in the withdrawal
+            total_gains = portfolio_value - cost_basis
+            gains_proportion = total_gains / portfolio_value if portfolio_value > 0 else 0
+            taxable_amount = withdrawal_amount * gains_proportion
+            
+            federal_tax = taxable_amount * tax_settings.capital_gains_tax_rate
+            state_tax = taxable_amount * tax_settings.state_tax_rate
+            return federal_tax + state_tax
+
     def _run_single_simulation(self, request: SimulationRequest) -> List[SimulationPath]:
-        """Run a single Monte Carlo simulation path with optional drawdowns"""
+        """Run a single Monte Carlo simulation path with optional drawdowns and taxes"""
         portfolio_value = request.initial_investment
+        cost_basis = request.initial_investment  # Track cost basis for tax calculations
         path = [SimulationPath(year=0, portfolio_value=portfolio_value)]
+        total_taxes_paid = 0.0
         
         for year in range(1, request.time_horizon + 1):
             # Calculate drawdown for this year (if enabled)
-            drawdown_amount = 0.0
+            gross_drawdown = 0.0
+            net_drawdown = 0.0
+            taxes_this_year = 0.0
+            
             if request.enable_drawdown and request.annual_drawdown > 0:
-                # Increase drawdown by inflation each year
-                drawdown_amount = request.annual_drawdown * (1 + request.inflation_rate) ** (year - 1)
+                # Calculate gross withdrawal needed (before taxes)
+                gross_drawdown = request.annual_drawdown * (1 + request.inflation_rate) ** (year - 1)
                 
-                # Apply drawdown at the beginning of the year
-                portfolio_value = max(0, portfolio_value - drawdown_amount)
+                # For tax-deferred accounts, we need to gross up the withdrawal to get the desired net amount
+                if request.tax_settings.account_type == "tax_deferred":
+                    # Calculate what gross withdrawal is needed to get the desired net amount
+                    combined_tax_rate = request.tax_settings.ordinary_income_tax_rate + request.tax_settings.state_tax_rate
+                    gross_drawdown = gross_drawdown / (1 - combined_tax_rate)
+                
+                # Calculate taxes on the withdrawal
+                taxes_this_year = self._calculate_withdrawal_tax(
+                    gross_drawdown, portfolio_value, cost_basis, request.tax_settings
+                )
+                total_taxes_paid += taxes_this_year
+                
+                # Net amount available after taxes
+                net_drawdown = gross_drawdown - taxes_this_year
+                
+                # Apply gross withdrawal to portfolio
+                portfolio_value = max(0, portfolio_value - gross_drawdown)
+                
+                # Update cost basis proportionally for taxable accounts
+                if request.tax_settings.account_type == "taxable" and portfolio_value > 0:
+                    cost_basis = cost_basis * (portfolio_value / (portfolio_value + gross_drawdown))
             
             # Only continue if portfolio has value remaining
             if portfolio_value <= 0:
@@ -135,6 +184,11 @@ class PortfolioSimulator:
             
             # Apply return to remaining portfolio value
             portfolio_value *= (1 + annual_return)
+            
+            # For taxable accounts, increase cost basis by new contributions (none in this model)
+            # Cost basis grows with the portfolio for non-taxable accounts
+            if request.tax_settings.account_type != "taxable":
+                cost_basis = portfolio_value  # No tax basis tracking needed for tax-advantaged accounts
             
             path.append(SimulationPath(year=year, portfolio_value=portfolio_value))
         
