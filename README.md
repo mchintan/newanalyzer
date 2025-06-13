@@ -49,7 +49,7 @@ A Monte Carlo simulation tool for analyzing investment portfolio performance, bu
    ```bash
    uvicorn server:app --reload --host 0.0.0.0 --port <port_no>
    ```
-   The backend will be available at http://<hostname>:<backend_port>
+   The backend will be available at http:// <hostname>:<backend_port>
 
 ### Frontend Setup
 
@@ -71,7 +71,7 @@ A Monte Carlo simulation tool for analyzing investment portfolio performance, bu
    - Backend: http://<hostname>:<backend_port>
    - Frontend: http://<hostname>:<frontend_port>
 
-2. Open http://localhost:3000 in your browser
+2. Open http://<hostname>:<frontend_port>in your browser
 
 3. Configure your portfolio:
    - Set initial investment amount
